@@ -1,5 +1,12 @@
-const CACHE = 'mandje-v2';
-const ASSETS = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
+const CACHE = 'mandje-v3';
+const BASE  = '/berlin-city-game';
+const ASSETS = [
+  BASE + '/',
+  BASE + '/index.html',
+  BASE + '/style.css',
+  BASE + '/app.js',
+  BASE + '/manifest.json',
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

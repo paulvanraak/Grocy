@@ -2,10 +2,11 @@
   "name": "Mandje",
   "short_name": "Mandje",
   "description": "Jouw boodschappenlijst",
-  "start_url": "/",
+  "start_url": "/berlin-city-game/",
+  "scope": "/berlin-city-game/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ffffff",
+  "background_color": "#FFFBEE",
   "theme_color": "#ffffff",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
