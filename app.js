@@ -679,8 +679,9 @@ function quickAdd(name) {
   resetAdd();
 }
 
-function renderAC(q) {
-  const dd = document.getElementById('acDropdown');
+function renderAC(q, target = 'week') {
+  const ddId = target === 'basis' ? 'acBasisDropdown' : 'acDropdown';
+  const dd   = document.getElementById(ddId);
   const sugg = getSuggestions(q);
   if (!sugg.length) { dd.style.display = 'none'; return; }
 
@@ -696,7 +697,15 @@ function renderAC(q) {
 
   dd.querySelectorAll('.autocomplete-item').forEach(el => {
     el.addEventListener('mousedown', e => e.preventDefault());
-    el.addEventListener('click', () => quickAdd(el.dataset.name));
+    el.addEventListener('click', () => {
+      if (target === 'basis') {
+        addBaseItem(el.dataset.name, '');
+        document.getElementById('basisInput').value = '';
+        dd.style.display = 'none';
+      } else {
+        quickAdd(el.dataset.name);
+      }
+    });
   });
 
   dd.style.display = '';
@@ -829,16 +838,20 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sheetBackdrop').addEventListener('click', closeSheet);
 
   document.getElementById('btnBasisAdd').addEventListener('click', () => {
-    const name  = document.getElementById('basisInput').value.trim();
-    const catId = document.getElementById('basisCat').value || 'overig';
+    const name = document.getElementById('basisInput').value.trim();
     if (!name) { document.getElementById('basisInput').focus(); return; }
-    addBaseItem(name, catId);
+    addBaseItem(name, '');   // categorie wordt auto-gedetecteerd
     document.getElementById('basisInput').value = '';
+    document.getElementById('acBasisDropdown').style.display = 'none';
     document.getElementById('basisInput').focus();
   });
 
-  document.getElementById('basisInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('btnBasisAdd').click();
+  document.getElementById('basisInput').addEventListener('input', () => {
+    renderAC(document.getElementById('basisInput').value.trim(), 'basis');
+  });
+
+  document.getElementById('basisInput').addEventListener('blur', () => {
+    setTimeout(() => { document.getElementById('acBasisDropdown').style.display = 'none'; }, 150);
   });
 
   // ── Prijsbalk + modal ─────────────────────────────────

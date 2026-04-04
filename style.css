@@ -129,18 +129,20 @@ html, body {
 .nav-bar.compact .nav-title-small { opacity: 1; }
 
 .nav-btn-left, .nav-btn-right {
-  background: none;
-  border: none;
+  background: rgba(0,122,255,.08);
+  border: 1px solid rgba(0,122,255,.18);
+  border-radius: 99px;
   color: var(--blue);
-  font-size: .95rem;
-  font-weight: 500;
+  font-size: .85rem;
+  font-weight: 600;
   cursor: pointer;
   display: flex; align-items: center; gap: 3px;
-  padding: 6px 0;
-  min-width: 72px;
+  padding: 5px 12px;
   -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+  white-space: nowrap;
 }
-.nav-btn-right { justify-content: flex-end; font-weight: 600; }
+.nav-btn-left:active, .nav-btn-right:active { background: rgba(0,122,255,.16); }
 
 /* ═══ SCROLL ═══ */
 .scroll-area {
