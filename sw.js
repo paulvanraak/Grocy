@@ -1,4 +1,4 @@
-const CACHE = 'boodschappen-v1';
+const CACHE = 'mandje-v2';
 const ASSETS = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', e => {
