@@ -31,6 +31,24 @@ const SUPERMARKETS = [
 // URL van jouw Cloudflare Worker (zie worker.js voor setup instructies)
 const WORKER_URL = '';
 
+// ══════════════════════════════════════════════════════
+// FIREBASE CONFIG — vul in na aanmaken Firebase project
+// Laat leeg voor lokale modus (geen sync)
+// ══════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: '',
+  authDomain: '',
+  projectId: '',
+  storageBucket: '',
+  messagingSenderId: '',
+  appId: '',
+};
+
+// ══════════════════════════════════════════════════════
+// SPOONACULAR API KEY — vul in na aanmelden op spoonacular.com
+// ══════════════════════════════════════════════════════
+const SPOONACULAR_KEY = '';
+
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 
 function getCachedPrice(sm, name) {
@@ -314,6 +332,18 @@ function save() {
 function trackFreq(name) {
   freq[name] = (freq[name] || 0) + 1;
   store.set('mnd_freq', freq);
+}
+
+// ══════════════════════════════════════════════════════
+// WEEKNUMMER IN LIJSTNAAM
+// ══════════════════════════════════════════════════════
+function suggestListName() {
+  const now = new Date();
+  const weekOfMonth = Math.ceil(now.getDate() / 7);
+  const maanden = ['Januari','Februari','Maart','April','Mei','Juni',
+                   'Juli','Augustus','September','Oktober','November','December'];
+  const maand = maanden[now.getMonth()];
+  return `Week ${weekOfMonth} ${maand}`;
 }
 
 // ══════════════════════════════════════════════════════
