@@ -31,6 +31,24 @@ const SUPERMARKETS = [
 // URL van jouw Cloudflare Worker (zie worker.js voor setup instructies)
 const WORKER_URL = '';
 
+// ══════════════════════════════════════════════════════
+// FIREBASE CONFIG — vul in na aanmaken Firebase project
+// Laat leeg voor lokale modus (geen sync)
+// ══════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: '',
+  authDomain: '',
+  projectId: '',
+  storageBucket: '',
+  messagingSenderId: '',
+  appId: '',
+};
+
+// ══════════════════════════════════════════════════════
+// SPOONACULAR API KEY — vul in na aanmelden op spoonacular.com
+// ══════════════════════════════════════════════════════
+const SPOONACULAR_KEY = '';
+
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 
 function getCachedPrice(sm, name) {
@@ -309,11 +327,24 @@ function save() {
   store.set('mnd_lists', lists);
   store.set('mnd_base', baseItems);
   store.set('mnd_freq', freq);
+  if (typeof cloud !== 'undefined' && cloud.isEnabled()) cloud.push();
 }
 
 function trackFreq(name) {
   freq[name] = (freq[name] || 0) + 1;
   store.set('mnd_freq', freq);
+}
+
+// ══════════════════════════════════════════════════════
+// WEEKNUMMER IN LIJSTNAAM
+// ══════════════════════════════════════════════════════
+function suggestListName() {
+  const now = new Date();
+  const weekOfMonth = Math.ceil(now.getDate() / 7);
+  const maanden = ['Januari','Februari','Maart','April','Mei','Juni',
+                   'Juli','Augustus','September','Oktober','November','December'];
+  const maand = maanden[now.getMonth()];
+  return `Week ${weekOfMonth} ${maand}`;
 }
 
 // ══════════════════════════════════════════════════════
@@ -497,6 +528,7 @@ function renderList() {
         </button>
         <div class="item-body">
           <div class="item-name">${esc(item.name)}</div>
+          ${item.fromRecipe ? `<div class="item-recipe-tag">🍳 ${esc(item.fromRecipe)}</div>` : ''}
         </div>
         <div class="item-stepper">
           <button class="step-btn step-min">−</button>
@@ -841,7 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── New list ────────────────────────────────────────
   document.getElementById('btnNewList').addEventListener('click', () => {
-    document.getElementById('newListName').value = '';
+    document.getElementById('newListName').value = suggestListName();
     document.getElementById('loadBase').checked = true;
     document.getElementById('modalList').style.display = 'flex';
     setTimeout(() => document.getElementById('newListName').focus(), 80);
@@ -938,7 +970,361 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('priceModal').addEventListener('click', e => {
     if (e.target === e.currentTarget) e.currentTarget.style.display = 'none';
   });
+
+  // ── Recept sheet ──────────────────────────────────────
+  document.getElementById('btnOpenRecipe').addEventListener('click', () => {
+    if (!activeId) {
+      document.getElementById('recipeContent').innerHTML =
+        '<p class="recipe-hint">Open eerst een lijst om recepten toe te voegen.</p>';
+    }
+    openRecipeSheet();
+  });
+  document.getElementById('btnRecipeClose').addEventListener('click', closeRecipeSheet);
+  document.getElementById('recipeBackdrop').addEventListener('click', closeRecipeSheet);
+  document.getElementById('btnRecipeSearch').addEventListener('click', () => {
+    searchRecipes(document.getElementById('recipeInput').value.trim());
+  });
+  document.getElementById('recipeInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') searchRecipes(document.getElementById('recipeInput').value.trim());
+  });
+
+  // ── Sync modal ────────────────────────────────────────
+  document.getElementById('btnSync').addEventListener('click', () => {
+    const sc = document.getElementById('syncContent');
+    if (!FIREBASE_CONFIG.apiKey) {
+      sc.innerHTML = `
+        <p style="font-size:.9rem;color:var(--t2);margin-bottom:12px;">
+          Firebase is niet geconfigureerd. Stel <code>FIREBASE_CONFIG</code> in app.js in om synchronisatie tussen apparaten te gebruiken.
+        </p>
+        <ol style="font-size:.85rem;color:var(--t2);line-height:1.7;padding-left:18px;">
+          <li>Maak een gratis project aan op <strong>firebase.google.com</strong></li>
+          <li>Voeg een web-app toe en kopieer de config</li>
+          <li>Plak de waarden in <code>FIREBASE_CONFIG</code> in app.js</li>
+          <li>Activeer Firestore in je Firebase project</li>
+        </ol>`;
+    } else {
+      const code = cloud.getCode() || '—';
+      sc.innerHTML = `
+        <p style="font-size:.9rem;color:var(--t2);margin-bottom:12px;">Deel deze code met je huisgenoten om dezelfde lijsten te delen:</p>
+        <div style="text-align:center;font-size:2rem;font-weight:800;letter-spacing:4px;margin:16px 0;color:var(--t1);">${esc(code)}</div>
+        <p style="font-size:.85rem;color:var(--t2);margin-bottom:8px;">Of voer een bestaande code in:</p>
+        <div style="display:flex;gap:8px;margin-bottom:4px;">
+          <input id="joinCodeInput" class="modal-input" style="margin:0;flex:1;height:44px;font-size:1rem;" type="text" placeholder="Bijv. ABC123" maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false">
+          <button class="btn-primary" style="flex-shrink:0;height:44px;padding:0 16px;" id="btnJoinHousehold">Deelnemen</button>
+        </div>
+        <div id="joinError" style="font-size:.8rem;color:var(--red);min-height:18px;"></div>`;
+      setTimeout(() => {
+        const joinBtn = document.getElementById('btnJoinHousehold');
+        if (joinBtn) {
+          joinBtn.addEventListener('click', async () => {
+            const codeVal = (document.getElementById('joinCodeInput').value || '').trim().toUpperCase();
+            if (codeVal.length !== 6) {
+              document.getElementById('joinError').textContent = 'Code moet 6 tekens zijn.';
+              return;
+            }
+            joinBtn.disabled = true;
+            joinBtn.textContent = 'Laden…';
+            try {
+              await cloud.joinHousehold(codeVal);
+              document.getElementById('modalSync').style.display = 'none';
+            } catch (err) {
+              document.getElementById('joinError').textContent = err.message;
+              joinBtn.disabled = false;
+              joinBtn.textContent = 'Deelnemen';
+            }
+          });
+        }
+      }, 50);
+    }
+    document.getElementById('modalSync').style.display = 'flex';
+  });
+  document.getElementById('btnSyncClose').addEventListener('click', () => {
+    document.getElementById('modalSync').style.display = 'none';
+  });
+  document.getElementById('modalSync').addEventListener('click', e => {
+    if (e.target === e.currentTarget) e.currentTarget.style.display = 'none';
+  });
+
+  // ── Firebase cloud init ───────────────────────────────
+  cloud.init().then(() => renderHome());
 });
+
+// ══════════════════════════════════════════════════════
+// EN → NL INGREDIENT VERTALING (60+ entries)
+// ══════════════════════════════════════════════════════
+const EN_NL = {
+  // Vegetables
+  'tomato': 'tomaat', 'tomatoes': 'tomaten', 'cherry tomatoes': 'kerstomaten',
+  'cucumber': 'komkommer', 'bell pepper': 'paprika', 'red bell pepper': 'rode paprika',
+  'green bell pepper': 'groene paprika', 'yellow bell pepper': 'gele paprika',
+  'onion': 'ui', 'onions': 'uien', 'red onion': 'rode ui', 'garlic': 'knoflook',
+  'garlic cloves': 'knoflookteentjes', 'broccoli': 'broccoli', 'spinach': 'spinazie',
+  'lettuce': 'sla', 'carrot': 'wortel', 'carrots': 'wortels',
+  'potato': 'aardappel', 'potatoes': 'aardappelen', 'sweet potato': 'zoete aardappel',
+  'mushroom': 'champignon', 'mushrooms': 'champignons', 'zucchini': 'courgette',
+  'courgette': 'courgette', 'cauliflower': 'bloemkool', 'leek': 'prei',
+  'celery': 'selderij', 'avocado': 'avocado', 'corn': 'maïs',
+  'peas': 'erwten', 'green beans': 'sperziebonen', 'asparagus': 'asperges',
+  'kale': 'boerenkool', 'cabbage': 'kool', 'red cabbage': 'rode kool',
+  'ginger': 'gember', 'chili': 'chili', 'jalapeno': 'jalapeño',
+  'spring onion': 'bosui', 'scallion': 'bosui',
+  // Fruit
+  'apple': 'appel', 'apples': 'appels', 'banana': 'banaan', 'bananas': 'bananen',
+  'lemon': 'citroen', 'lemons': 'citroenen', 'lime': 'limoen',
+  'orange': 'sinaasappel', 'strawberry': 'aardbei', 'strawberries': 'aardbeien',
+  'mango': 'mango', 'pineapple': 'ananas', 'grapes': 'druiven',
+  // Dairy & eggs
+  'milk': 'melk', 'butter': 'boter', 'cream': 'room', 'heavy cream': 'slagroom',
+  'sour cream': 'zure room', 'yogurt': 'yoghurt', 'cheese': 'kaas',
+  'parmesan': 'parmezaan', 'mozzarella': 'mozzarella', 'feta': 'feta',
+  'cheddar': 'cheddar', 'cream cheese': 'roomkaas', 'ricotta': 'ricotta',
+  'eggs': 'eieren', 'egg': 'ei',
+  // Meat & fish
+  'chicken': 'kip', 'chicken breast': 'kipfilet', 'chicken thighs': 'kippendijen',
+  'ground beef': 'rundergehakt', 'beef': 'rundvlees', 'pork': 'varkensvlees',
+  'bacon': 'spek', 'ham': 'ham', 'salmon': 'zalm', 'tuna': 'tonijn',
+  'shrimp': 'garnalen', 'prawns': 'garnalen', 'cod': 'kabeljauw',
+  'turkey': 'kalkoen', 'sausage': 'worst', 'minced meat': 'gehakt',
+  // Dry goods
+  'pasta': 'pasta', 'spaghetti': 'spaghetti', 'rice': 'rijst',
+  'flour': 'bloem', 'sugar': 'suiker', 'salt': 'zout', 'pepper': 'peper',
+  'olive oil': 'olijfolie', 'vegetable oil': 'zonnebloemolie',
+  'tomato paste': 'tomatenpuree', 'tomato sauce': 'tomatensaus',
+  'canned tomatoes': 'tomaten blik', 'coconut milk': 'kokosmelk',
+  'broth': 'bouillon', 'chicken broth': 'kippenbouillon', 'beef broth': 'runderbouillon',
+  'soy sauce': 'sojasaus', 'mustard': 'mosterd', 'mayonnaise': 'mayonaise',
+  'ketchup': 'ketchup', 'honey': 'honing', 'peanut butter': 'pindakaas',
+  'vinegar': 'azijn', 'lentils': 'linzen', 'chickpeas': 'kikkererwten',
+  'black beans': 'zwarte bonen', 'bread': 'brood', 'oats': 'havermout',
+  'quinoa': 'quinoa', 'couscous': 'couscous', 'breadcrumbs': 'paneermeel',
+  // Herbs & spices
+  'basil': 'basilicum', 'oregano': 'oregano', 'thyme': 'tijm',
+  'rosemary': 'rozemarijn', 'parsley': 'peterselie', 'cilantro': 'koriander',
+  'cumin': 'komijn', 'paprika powder': 'paprikapoeder', 'turmeric': 'kurkuma',
+  'cinnamon': 'kaneel', 'bay leaf': 'laurierblad', 'bay leaves': 'laurierblaadjes',
+  'nutmeg': 'nootmuskaat', 'chili powder': 'chilipoeier',
+  // Other
+  'water': 'water', 'stock': 'bouillon', 'wine': 'wijn', 'red wine': 'rode wijn',
+  'white wine': 'witte wijn', 'lemon juice': 'citroensap', 'lime juice': 'limoensap',
+  'chocolate': 'chocolade', 'vanilla': 'vanille', 'baking powder': 'bakpoeder',
+  'baking soda': 'baking soda', 'yeast': 'gist', 'tofu': 'tofu',
+};
+
+function translateIngredient(name) {
+  const lower = name.toLowerCase().trim();
+  if (EN_NL[lower]) return EN_NL[lower];
+  // Try partial match
+  for (const [en, nl] of Object.entries(EN_NL)) {
+    if (lower.includes(en)) return nl;
+  }
+  return name; // return original if no translation found
+}
+
+function parseIngredient(ing) {
+  const raw = ing.original || ing.name || '';
+  const name = translateIngredient(ing.name || raw);
+  const qty = ing.amount || 1;
+  const unit = ing.unit || 'stuks';
+  const catId = guessCat(name);
+  return { name, qty, unit, catId };
+}
+
+// ══════════════════════════════════════════════════════
+// FIREBASE CLOUD SYNC MODULE
+// ══════════════════════════════════════════════════════
+const cloud = (() => {
+  let db = null;
+  let householdId = null;
+  let unsubscribe = null;
+  let enabled = false;
+
+  function genCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  }
+
+  function listenToHousehold(id) {
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    unsubscribe = db.collection('households').doc(id).onSnapshot(snap => {
+      if (!snap.exists) return;
+      const data = snap.data();
+      if (data.lists)     { lists     = data.lists;     store.set('mnd_lists', lists); }
+      if (data.baseItems) { baseItems = data.baseItems; store.set('mnd_base', baseItems); }
+      if (data.freq)      { freq      = data.freq;      store.set('mnd_freq', freq); }
+      renderHome();
+      if (activeId) renderList();
+    });
+  }
+
+  async function init() {
+    if (!FIREBASE_CONFIG.apiKey) return;
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+      enabled = true;
+
+      householdId = localStorage.getItem('mnd_household');
+      if (!householdId) {
+        householdId = genCode();
+        localStorage.setItem('mnd_household', householdId);
+        // Create initial doc
+        await db.collection('households').doc(householdId).set({
+          lists, baseItems, freq, createdAt: Date.now()
+        });
+      }
+      listenToHousehold(householdId);
+    } catch (e) {
+      console.warn('Firebase init failed:', e);
+      enabled = false;
+    }
+  }
+
+  async function push() {
+    if (!enabled || !db || !householdId) return;
+    try {
+      await db.collection('households').doc(householdId).set(
+        { lists, baseItems, freq, updatedAt: Date.now() },
+        { merge: true }
+      );
+    } catch (e) { console.warn('cloud.push failed:', e); }
+  }
+
+  async function joinHousehold(code) {
+    if (!enabled || !db) throw new Error('Firebase niet geconfigureerd');
+    const snap = await db.collection('households').doc(code).get();
+    if (!snap.exists) throw new Error('Huishouden niet gevonden: ' + code);
+    const data = snap.data();
+    if (data.lists)     { lists     = data.lists;     store.set('mnd_lists', lists); }
+    if (data.baseItems) { baseItems = data.baseItems; store.set('mnd_base', baseItems); }
+    if (data.freq)      { freq      = data.freq;      store.set('mnd_freq', freq); }
+    householdId = code;
+    localStorage.setItem('mnd_household', code);
+    listenToHousehold(code);
+    renderHome();
+    if (activeId) renderList();
+  }
+
+  function getCode() { return householdId; }
+  function isEnabled() { return enabled; }
+
+  return { init, push, joinHousehold, getCode, isEnabled };
+})();
+
+// ══════════════════════════════════════════════════════
+// SPOONACULAR RECEPT FUNCTIES
+// ══════════════════════════════════════════════════════
+
+function openRecipeSheet() {
+  const sheet = document.getElementById('recipeSheet');
+  sheet.classList.add('open');
+  document.getElementById('recipeInput').value = '';
+  const rc = document.getElementById('recipeContent');
+  if (!SPOONACULAR_KEY) {
+    rc.innerHTML = '<p class="recipe-hint">Stel Spoonacular API in om recepten te zoeken.</p>';
+  } else {
+    rc.innerHTML = '<p class="recipe-hint">Zoek een gerecht om ingrediënten automatisch aan je lijst toe te voegen.</p>';
+  }
+}
+
+function closeRecipeSheet() {
+  document.getElementById('recipeSheet').classList.remove('open');
+}
+
+function renderRecipeLoading() {
+  document.getElementById('recipeContent').innerHTML =
+    '<div class="recipe-loading">Laden…</div>';
+}
+
+async function searchRecipes(query) {
+  if (!SPOONACULAR_KEY) return;
+  if (!query.trim()) return;
+  renderRecipeLoading();
+  try {
+    const url = `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(query)}&number=8&addRecipeInformation=true&language=nl&apiKey=${SPOONACULAR_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('API fout: ' + res.status);
+    const data = await res.json();
+    renderRecipeResults(data.results || []);
+  } catch (e) {
+    document.getElementById('recipeContent').innerHTML =
+      `<p class="recipe-hint" style="color:var(--red)">Fout bij laden: ${esc(e.message)}</p>`;
+  }
+}
+
+function renderRecipeResults(recipes) {
+  const rc = document.getElementById('recipeContent');
+  if (!recipes.length) {
+    rc.innerHTML = '<p class="recipe-hint">Geen recepten gevonden. Probeer een andere zoekterm.</p>';
+    return;
+  }
+  rc.innerHTML = recipes.map(r => {
+    const ingCount = (r.extendedIngredients || []).length || r.usedIngredientCount || '?';
+    const thumb = r.image
+      ? `<img class="recipe-thumb" src="${esc(r.image)}" alt="" loading="lazy">`
+      : `<div class="recipe-thumb recipe-thumb--empty">🍽️</div>`;
+    return `<div class="recipe-card" data-id="${r.id}">
+      ${thumb}
+      <div class="recipe-card-body">
+        <div class="recipe-title">${esc(r.title)}</div>
+        <div class="recipe-meta">${ingCount} ingrediënten</div>
+      </div>
+      <svg class="recipe-arrow" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.5" width="6" height="10"><polyline points="2 18 10 10 2 2"/></svg>
+    </div>`;
+  }).join('');
+
+  rc.querySelectorAll('.recipe-card').forEach((el, i) => {
+    el.addEventListener('click', () => renderRecipeDetail(recipes[i]));
+  });
+}
+
+function renderRecipeDetail(recipe) {
+  const rc = document.getElementById('recipeContent');
+  const ings = (recipe.extendedIngredients || []).map(ing => {
+    const p = parseIngredient(ing);
+    const qtyStr = p.unit && p.unit !== 'stuks' ? `${p.qty} ${esc(p.unit)}` : `${p.qty}×`;
+    return `<div class="recipe-ing-row"><span class="recipe-ing-qty">${qtyStr}</span><span class="recipe-ing-name">${esc(p.name)}</span></div>`;
+  }).join('');
+
+  rc.innerHTML = `
+    <button class="recipe-back-btn" id="btnRecipeBack">← Terug</button>
+    <div class="recipe-detail-title">${esc(recipe.title)}</div>
+    <div class="recipe-ing-list">${ings || '<p class="recipe-hint">Geen ingrediënten beschikbaar.</p>'}</div>
+    <button class="recipe-add-all-btn" id="btnAddAllIngredients">Voeg toe aan lijst</button>`;
+
+  document.getElementById('btnRecipeBack').addEventListener('click', () => {
+    rc.innerHTML = '<p class="recipe-hint">Zoek een gerecht om ingrediënten automatisch aan je lijst toe te voegen.</p>';
+  });
+
+  document.getElementById('btnAddAllIngredients').addEventListener('click', () => {
+    addRecipeItems(recipe);
+    closeRecipeSheet();
+  });
+}
+
+function addRecipeItems(recipe) {
+  const list = activeList();
+  if (!list) { alert('Open eerst een lijst.'); return; }
+  (recipe.extendedIngredients || []).forEach(ing => {
+    const p = parseIngredient(ing);
+    if (!p.name.trim()) return;
+    // Avoid exact duplicates
+    if (list.items.find(i => i.name.toLowerCase() === p.name.toLowerCase() && !i.checked)) return;
+    list.items.push({
+      id: uid(),
+      name: p.name,
+      catId: p.catId,
+      qty: Math.max(1, Math.round(p.qty)) || 1,
+      unit: p.unit || 'stuks',
+      checked: false,
+      fromBase: false,
+      fromRecipe: recipe.title,
+    });
+  });
+  save();
+  renderList();
+}
 
 // Service Worker
 if ('serviceWorker' in navigator) {
