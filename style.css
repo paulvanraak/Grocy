@@ -617,6 +617,41 @@ html, body {
   white-space: nowrap;
 }
 
+/* Inline stepper in list rows */
+.item-stepper {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border-radius: 99px;
+  padding: 2px;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.step-btn {
+  width: 30px; height: 30px;
+  background: none;
+  border: none;
+  color: var(--green);
+  font-size: 1.3rem;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .1s;
+}
+.step-btn:active { background: var(--sep); }
+
+.step-val {
+  min-width: 30px;
+  text-align: center;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--t1);
+}
+
 .item-del {
   background: none;
   border: none;
@@ -624,14 +659,18 @@ html, body {
   cursor: pointer;
   padding: 4px;
   border-radius: 50%;
-  width: 28px; height: 28px;
+  width: 30px; height: 30px;
   display: flex; align-items: center; justify-content: center;
   -webkit-tap-highlight-color: transparent;
   flex-shrink: 0;
   transition: color .15s;
+  margin-left: 2px;
 }
 .item-del:active { color: var(--red); }
-.item-del svg { width: 15px; height: 15px; }
+.item-del svg { width: 14px; height: 14px; }
+
+/* Autocomplete cat icon */
+.ac-cat { font-size: .9rem; width: 20px; text-align: center; flex-shrink: 0; }
 
 /* ═══ FOOTER ═══ */
 .list-footer { display: flex; justify-content: center; padding: 16px; }

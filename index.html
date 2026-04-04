@@ -82,28 +82,9 @@
             <input id="itemInput" type="text" placeholder="Item toevoegen…" autocomplete="off" autocorrect="off" spellcheck="false">
             <div id="acDropdown" class="autocomplete-dropdown" style="display:none"></div>
           </div>
-          <select id="itemCat" class="cat-select"></select>
-        </div>
-
-        <!-- Qty stage -->
-        <div id="qtyStage" style="display:none" class="qty-stage">
-          <div class="qty-label">Hoeveel?</div>
-          <div class="qty-item-name" id="qtyName"></div>
-          <div class="qty-row">
-            <div class="qty-stepper">
-              <button class="qty-btn" id="qtyMin">−</button>
-              <input class="qty-number" id="qtyVal" type="number" value="1" min="1">
-              <button class="qty-btn" id="qtyPlus">+</button>
-            </div>
-            <div class="qty-unit-toggle">
-              <button class="unit-btn active" id="btnStuks">stuks</button>
-              <button class="unit-btn" id="btnGram">gram</button>
-            </div>
-          </div>
-          <div class="qty-actions">
-            <button class="qty-cancel" id="btnQtyCancel">Annuleer</button>
-            <button class="qty-confirm" id="btnQtyConfirm">Toevoegen</button>
-          </div>
+          <button class="add-btn" id="btnAddItem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
         </div>
       </div>
 
