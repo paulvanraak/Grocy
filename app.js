@@ -202,35 +202,32 @@ function renderHome() {
 
     const card = document.createElement('div');
     card.className = 'list-card';
-    card.dataset.id = list.id;
-    card.innerHTML = `
+
+    // Main tappable area — opens list
+    const main = document.createElement('div');
+    main.className = 'list-card-main';
+    main.innerHTML = `
       <div class="list-card-icon">🛒</div>
       <div class="list-card-body">
         <div class="list-card-name">${esc(list.name)}</div>
         <div class="list-card-meta">${total} items · ${date}</div>
       </div>
-      <div class="list-card-pct">${pct}%</div>
-      <button class="list-card-del" data-id="${list.id}">Verwijder</button>`;
+      <div class="list-card-pct">${pct ? pct + '%' : ''}</div>`;
+    main.addEventListener('click', () => openList(list.id));
 
-    // Long press reveals delete
-    let timer;
-    card.addEventListener('touchstart', () => { timer = setTimeout(() => card.classList.toggle('reveal-del'), 500); }, { passive: true });
-    card.addEventListener('touchend', () => clearTimeout(timer), { passive: true });
-    card.addEventListener('touchmove', () => clearTimeout(timer), { passive: true });
-
-    card.querySelector('.list-card-del').addEventListener('click', e => {
+    // Delete button — separate, always visible
+    const del = document.createElement('button');
+    del.className = 'list-card-del';
+    del.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>`;
+    del.addEventListener('click', e => {
       e.stopPropagation();
       lists = lists.filter(l => l.id !== list.id);
       save();
       renderHome();
     });
 
-    card.addEventListener('click', e => {
-      if (e.target.closest('.list-card-del')) return;
-      card.classList.remove('reveal-del');
-      openList(list.id);
-    });
-
+    card.appendChild(main);
+    card.appendChild(del);
     cards.appendChild(card);
   });
 }
@@ -544,10 +541,21 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCompact('homeScroll', 'homeNav');
   setupCompact('listScroll', 'listNav');
 
-  // Splash → Home
+  // Splash → Home: crossfade dissolve
   setTimeout(() => {
-    showScreen('screen-home');
     renderHome();
+    const splash = document.getElementById('screen-splash');
+    const home   = document.getElementById('screen-home');
+    // Show home underneath first
+    home.classList.add('is-active');
+    // Fade splash out on top
+    splash.style.transition = 'opacity 0.65s ease';
+    splash.style.opacity = '0';
+    splash.style.zIndex  = '5';
+    setTimeout(() => {
+      splash.classList.remove('is-active');
+      splash.style.cssText = '';
+    }, 700);
   }, 2000);
 
   // ── New list ────────────────────────────────────────
