@@ -769,14 +769,15 @@ html, body {
   flex-shrink: 0;
   display: flex;
   gap: 8px;
-  align-items: stretch;
+  align-items: center;
 }
 
 .sheet-add input {
   flex: 1;
+  min-width: 0;
   height: 44px;
   padding: 0 12px;
-  background: var(--card);
+  background: var(--bg);
   border: 1.5px solid transparent;
   border-radius: var(--radius-xs);
   font-size: 1rem;
@@ -784,8 +785,10 @@ html, body {
   outline: none;
   -webkit-appearance: none;
 }
-.sheet-add input:focus { border-color: var(--green); }
+.sheet-add input:focus { border-color: var(--green); background: #fff; }
 .sheet-add input::placeholder { color: var(--t3); }
+
+.sheet-add .add-btn { flex-shrink: 0; }
 
 .sheet-scroll {
   flex: 1;
