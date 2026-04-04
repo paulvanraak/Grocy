@@ -15,6 +15,155 @@ const CATS = [
 ];
 
 // ══════════════════════════════════════════════════════
+// SUPERMARKT PRIJSVERGELIJKING
+// Gemiddelde prijzen (€) per supermarkt, NL 2024-2025
+// ══════════════════════════════════════════════════════
+const SUPERMARKETS = [
+  { id: 'ah',    label: 'Albert Heijn', color: '#00A0E2' },
+  { id: 'jumbo', label: 'Jumbo',        color: '#FDB913' },
+  { id: 'plus',  label: 'Plus',         color: '#E4202D' },
+  { id: 'lidl',  label: 'Lidl',         color: '#0050AA' },
+  { id: 'aldi',  label: 'Aldi',         color: '#1B4F9B' },
+];
+
+// keywords: lowercase woorden die in de itemnaam kunnen voorkomen
+// prijzen per eenheid (stuk / 500g / 1L afhankelijk van product)
+const PRICE_DB = [
+  // ── Groente ──────────────────────────────────────────
+  { kw:['tomaat','tomaten','kerstomaat'],          ah:2.49, jumbo:2.29, plus:2.39, lidl:1.99, aldi:1.89 },
+  { kw:['komkommer'],                             ah:0.99, jumbo:0.89, plus:0.95, lidl:0.79, aldi:0.75 },
+  { kw:['paprika'],                               ah:1.99, jumbo:1.79, plus:1.89, lidl:1.49, aldi:1.39 },
+  { kw:['broccoli'],                              ah:1.29, jumbo:1.19, plus:1.25, lidl:0.99, aldi:0.89 },
+  { kw:['bloemkool'],                             ah:1.49, jumbo:1.35, plus:1.39, lidl:1.09, aldi:0.99 },
+  { kw:['spinazie'],                              ah:2.29, jumbo:2.09, plus:2.19, lidl:1.79, aldi:1.69 },
+  { kw:['sla','ijsbergsla','veldsla','rucola'],   ah:1.09, jumbo:0.99, plus:1.05, lidl:0.79, aldi:0.69 },
+  { kw:['champignon'],                            ah:1.79, jumbo:1.59, plus:1.69, lidl:1.29, aldi:1.19 },
+  { kw:['ui','rode ui'],                          ah:1.49, jumbo:1.29, plus:1.39, lidl:0.99, aldi:0.95 },
+  { kw:['knoflook'],                              ah:0.79, jumbo:0.69, plus:0.75, lidl:0.55, aldi:0.49 },
+  { kw:['prei'],                                  ah:1.09, jumbo:0.99, plus:1.05, lidl:0.79, aldi:0.75 },
+  { kw:['wortel','wortels'],                      ah:1.29, jumbo:1.19, plus:1.19, lidl:0.89, aldi:0.85 },
+  { kw:['aardappel'],                             ah:2.49, jumbo:2.19, plus:2.29, lidl:1.79, aldi:1.69 },
+  { kw:['zoete aardappel'],                       ah:1.99, jumbo:1.79, plus:1.89, lidl:1.49, aldi:1.39 },
+  { kw:['courgette'],                             ah:1.29, jumbo:1.19, plus:1.25, lidl:0.99, aldi:0.89 },
+  { kw:['avocado'],                               ah:1.29, jumbo:1.19, plus:1.19, lidl:0.99, aldi:0.89 },
+  { kw:['boerenkool'],                            ah:1.49, jumbo:1.35, plus:1.39, lidl:1.09, aldi:0.99 },
+  { kw:['sperzieboon'],                           ah:2.49, jumbo:2.19, plus:2.29, lidl:1.89, aldi:1.79 },
+  // ── Fruit ────────────────────────────────────────────
+  { kw:['banaan'],                                ah:1.79, jumbo:1.59, plus:1.69, lidl:1.29, aldi:1.19 },
+  { kw:['appel'],                                 ah:2.49, jumbo:2.29, plus:2.39, lidl:1.99, aldi:1.89 },
+  { kw:['peer'],                                  ah:2.29, jumbo:2.09, plus:2.19, lidl:1.79, aldi:1.69 },
+  { kw:['sinaasappel'],                           ah:2.29, jumbo:2.09, plus:2.19, lidl:1.79, aldi:1.69 },
+  { kw:['mandarijn'],                             ah:2.49, jumbo:2.29, plus:2.39, lidl:1.99, aldi:1.89 },
+  { kw:['druif'],                                 ah:3.49, jumbo:3.19, plus:3.29, lidl:2.79, aldi:2.59 },
+  { kw:['aardbei'],                               ah:2.99, jumbo:2.79, plus:2.89, lidl:2.49, aldi:2.29 },
+  { kw:['mango'],                                 ah:1.99, jumbo:1.79, plus:1.89, lidl:1.49, aldi:1.39 },
+  // ── Zuivel ───────────────────────────────────────────
+  { kw:['melk','volle melk','halfvolle melk','magere melk'], ah:1.09, jumbo:0.99, plus:1.05, lidl:0.85, aldi:0.82 },
+  { kw:['boter'],                                 ah:2.29, jumbo:2.09, plus:2.19, lidl:1.79, aldi:1.69 },
+  { kw:['yoghurt'],                               ah:1.09, jumbo:0.99, plus:1.05, lidl:0.79, aldi:0.75 },
+  { kw:['griekse yoghurt'],                       ah:1.49, jumbo:1.35, plus:1.39, lidl:1.09, aldi:0.99 },
+  { kw:['kwark'],                                 ah:1.49, jumbo:1.29, plus:1.39, lidl:1.09, aldi:0.99 },
+  { kw:['slagroom','room'],                       ah:1.49, jumbo:1.29, plus:1.39, lidl:1.09, aldi:0.99 },
+  { kw:['karnemelk'],                             ah:0.99, jumbo:0.89, plus:0.95, lidl:0.75, aldi:0.72 },
+  { kw:['kaas','gouda','belegen','jong belegen'],  ah:4.99, jumbo:4.49, plus:4.79, lidl:3.99, aldi:3.69 },
+  { kw:['mozzarella'],                            ah:1.49, jumbo:1.35, plus:1.39, lidl:1.09, aldi:0.99 },
+  { kw:['feta'],                                  ah:2.49, jumbo:2.29, plus:2.39, lidl:1.99, aldi:1.89 },
+  { kw:['roomkaas','smeerkaas'],                  ah:1.99, jumbo:1.79, plus:1.89, lidl:1.49, aldi:1.39 },
+  { kw:['eieren','ei'],                           ah:2.49, jumbo:2.29, plus:2.39, lidl:1.99, aldi:1.89 },
+  // ── Vlees ────────────────────────────────────────────
+  { kw:['gehakt','rundergehakt','varkensgehakt','half-om-half'], ah:4.99, jumbo:4.49, plus:4.79, lidl:3.99, aldi:3.69 },
+  { kw:['kipfilet','kip','kipdrumstick','kippendij'], ah:5.99, jumbo:5.49, plus:5.79, lidl:4.99, aldi:4.69 },
+  { kw:['spek'],                                  ah:2.49, jumbo:2.29, plus:2.39, lidl:1.99, aldi:1.89 },
+  { kw:['ham'],                                   ah:2.79, jumbo:2.49, plus:2.69, lidl:2.19, aldi:1.99 },
+  { kw:['rookworst','braadworst','worst'],         ah:2.79, jumbo:2.49, plus:2.69, lidl:2.19, aldi:1.99 },
+  { kw:['hamburger'],                             ah:3.99, jumbo:3.69, plus:3.79, lidl:3.29, aldi:2.99 },
+  { kw:['zalm'],                                  ah:6.99, jumbo:6.49, plus:6.79, lidl:5.99, aldi:5.49 },
+  { kw:['tonijn'],                                ah:1.49, jumbo:1.29, plus:1.39, lidl:1.09, aldi:0.99 },
+  { kw:['garnalen'],                              ah:5.99, jumbo:5.49, plus:5.79, lidl:4.99, aldi:4.69 },
+  // ── Droogkast ─────────────────────────────────────────
+  { kw:['pasta','spaghetti','penne','fusilli','tagliatelle','macaroni'], ah:1.49, jumbo:1.29, plus:1.39, lidl:0.99, aldi:0.89 },
+  { kw:['rijst','basmatirijst','zilvervliesrijst'], ah:1.99, jumbo:1.79, plus:1.89, lidl:1.49, aldi:1.39 },
+  { kw:['couscous','quinoa','bulgur'],            ah:2.49, jumbo:2.29, plus:2.39, lidl:1.99, aldi:1.89 },
+  { kw:['bloem'],                                 ah:1.29, jumbo:1.09, plus:1.19, lidl:0.89, aldi:0.85 },
+  { kw:['suiker','basterdsuiker'],                ah:1.49, jumbo:1.29, plus:1.39, lidl:1.09, aldi:0.99 },
+  { kw:['olijfolie'],                             ah:4.99, jumbo:4.49, plus:4.79, lidl:3.99, aldi:3.69 },
+  { kw:['zonnebloemolie','olie'],                 ah:2.99, jumbo:2.69, plus:2.89, lidl:2.29, aldi:2.09 },
+  { kw:['tomatenpuree','gezeefde tomaten','tomaten blik'], ah:0.99, jumbo:0.89, plus:0.95, lidl:0.69, aldi:0.65 },
+  { kw:['kokosmelk'],                             ah:1.79, jumbo:1.59, plus:1.69, lidl:1.29, aldi:1.19 },
+  { kw:['bouillon'],                              ah:1.49, jumbo:1.29, plus:1.39, lidl:1.09, aldi:0.99 },
+  { kw:['soep'],                                  ah:1.79, jumbo:1.59, plus:1.69, lidl:1.29, aldi:1.19 },
+  { kw:['mosterd'],                               ah:1.49, jumbo:1.29, plus:1.39, lidl:1.09, aldi:0.99 },
+  { kw:['mayonaise'],                             ah:2.49, jumbo:2.29, plus:2.39, lidl:1.99, aldi:1.89 },
+  { kw:['ketchup'],                               ah:1.99, jumbo:1.79, plus:1.89, lidl:1.49, aldi:1.39 },
+  { kw:['sambal','pesto','harissa'],              ah:2.29, jumbo:1.99, plus:2.09, lidl:1.69, aldi:1.59 },
+  { kw:['pindakaas'],                             ah:2.99, jumbo:2.69, plus:2.89, lidl:2.29, aldi:2.09 },
+  { kw:['jam'],                                   ah:1.99, jumbo:1.79, plus:1.89, lidl:1.49, aldi:1.39 },
+  { kw:['hagelslag'],                             ah:1.99, jumbo:1.79, plus:1.89, lidl:1.59, aldi:1.49 },
+  { kw:['honing'],                                ah:2.99, jumbo:2.69, plus:2.89, lidl:2.29, aldi:2.09 },
+  { kw:['havermout','muesli','granola','cruesli'], ah:2.49, jumbo:2.19, plus:2.29, lidl:1.89, aldi:1.69 },
+  { kw:['crackers','rijstwafels','beschuit'],     ah:1.99, jumbo:1.79, plus:1.89, lidl:1.49, aldi:1.39 },
+  { kw:['chocolade','cacao'],                     ah:2.49, jumbo:2.29, plus:2.39, lidl:1.99, aldi:1.89 },
+  { kw:['linzen','kikkererwt','bonen'],           ah:1.49, jumbo:1.29, plus:1.39, lidl:0.99, aldi:0.89 },
+  // ── Brood ────────────────────────────────────────────
+  { kw:['brood','volkoren','meergranen'],         ah:2.29, jumbo:2.09, plus:2.19, lidl:1.79, aldi:1.65 },
+  { kw:['stokbrood','ciabatta','focaccia'],       ah:1.49, jumbo:1.29, plus:1.39, lidl:0.99, aldi:0.89 },
+  { kw:['croissant'],                             ah:2.99, jumbo:2.69, plus:2.89, lidl:2.29, aldi:2.09 },
+  { kw:['wrap','tortilla','pita','naan'],         ah:1.99, jumbo:1.79, plus:1.89, lidl:1.49, aldi:1.39 },
+  // ── Drogisterij ──────────────────────────────────────
+  { kw:['shampoo'],                               ah:3.99, jumbo:3.49, plus:3.79, lidl:2.49, aldi:2.29 },
+  { kw:['conditioner'],                           ah:3.99, jumbo:3.49, plus:3.79, lidl:2.49, aldi:2.29 },
+  { kw:['tandpasta'],                             ah:2.49, jumbo:2.29, plus:2.39, lidl:1.69, aldi:1.49 },
+  { kw:['zeep','handzeep'],                       ah:2.29, jumbo:1.99, plus:2.09, lidl:1.49, aldi:1.39 },
+  { kw:['deodorant'],                             ah:3.49, jumbo:3.19, plus:3.29, lidl:2.49, aldi:2.29 },
+  { kw:['wasmiddel'],                             ah:9.99, jumbo:8.99, plus:9.49, lidl:6.99, aldi:6.49 },
+  { kw:['afwasmiddel','vaatwas'],                 ah:2.49, jumbo:2.29, plus:2.39, lidl:1.79, aldi:1.59 },
+  { kw:['wc-papier','toiletpapier'],              ah:4.99, jumbo:4.49, plus:4.79, lidl:3.49, aldi:3.29 },
+  { kw:['keukenpapier'],                          ah:2.99, jumbo:2.69, plus:2.89, lidl:1.99, aldi:1.89 },
+  { kw:['vuilniszak'],                            ah:2.99, jumbo:2.69, plus:2.89, lidl:1.99, aldi:1.89 },
+  // ── Overig ───────────────────────────────────────────
+  { kw:['koffie','espresso','filterkoffie'],      ah:4.99, jumbo:4.49, plus:4.79, lidl:3.99, aldi:3.69 },
+  { kw:['thee'],                                  ah:2.49, jumbo:2.29, plus:2.39, lidl:1.79, aldi:1.59 },
+  { kw:['sap','jus','sinaasappelsap','appelsap'], ah:1.99, jumbo:1.79, plus:1.89, lidl:1.49, aldi:1.39 },
+  { kw:['cola','fris'],                           ah:1.89, jumbo:1.69, plus:1.79, lidl:1.29, aldi:0.99 },
+  { kw:['water','spa'],                           ah:0.79, jumbo:0.69, plus:0.75, lidl:0.55, aldi:0.49 },
+  { kw:['chips'],                                 ah:2.49, jumbo:2.29, plus:2.39, lidl:1.99, aldi:1.89 },
+  { kw:['noten','amandel','cashew','walnoot','pinda'], ah:3.99, jumbo:3.49, plus:3.79, lidl:2.99, aldi:2.69 },
+  { kw:['wijn','rode wijn','witte wijn'],         ah:6.99, jumbo:6.49, plus:6.79, lidl:5.49, aldi:4.99 },
+  { kw:['bier'],                                  ah:5.99, jumbo:5.49, plus:5.79, lidl:4.49, aldi:3.99 },
+];
+
+// Match een itemnaam tegen PRICE_DB
+function matchPrice(name) {
+  const ln = name.toLowerCase();
+  return PRICE_DB.find(e => e.kw.some(k => ln.includes(k) || k.includes(ln)));
+}
+
+// Bereken welke supermarkt het voordeligst is voor de lijst
+function calcPriceAdvice(items) {
+  const totals = {};
+  SUPERMARKETS.forEach(sm => { totals[sm.id] = 0; });
+  let matched = 0;
+
+  items.filter(i => !i.checked).forEach(item => {
+    const entry = matchPrice(item.name);
+    if (!entry) return;
+    matched++;
+    const qty = item.unit === 'gram'
+      ? Math.max(1, Math.round((item.qty || 1) / 500))
+      : Math.max(1, item.qty || 1);
+    SUPERMARKETS.forEach(sm => { totals[sm.id] += entry[sm.id] * qty; });
+  });
+
+  if (matched < 2) return null;
+
+  const ranked = SUPERMARKETS
+    .map(sm => ({ ...sm, total: totals[sm.id] }))
+    .sort((a, b) => a.total - b.total);
+
+  return { ranked, matched, total: items.filter(i => !i.checked).length };
+}
+
+// ══════════════════════════════════════════════════════
 // DUTCH GROCERY VOCABULARY (voor autocomplete zonder geschiedenis)
 // ══════════════════════════════════════════════════════
 const VOCAB = [
@@ -319,6 +468,49 @@ function renderList() {
 
     container.appendChild(sec);
   });
+
+  // Prijsadvies onderaan
+  renderPriceAdvice(list);
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER PRIJSADVIES
+// ══════════════════════════════════════════════════════
+function renderPriceAdvice(list) {
+  // Remove old advice card if present
+  const old = document.getElementById('priceAdviceCard');
+  if (old) old.remove();
+
+  const advice = calcPriceAdvice(list.items);
+  if (!advice) return;
+
+  const best    = advice.ranked[0];
+  const savings = advice.ranked[advice.ranked.length - 1].total - best.total;
+
+  const card = document.createElement('div');
+  card.id = 'priceAdviceCard';
+  card.className = 'price-advice-card';
+
+  const rows = advice.ranked.map((sm, i) => `
+    <div class="price-row ${i === 0 ? 'price-row--best' : ''}">
+      <span class="price-rank">${i === 0 ? '🏆' : `${i + 1}`}</span>
+      <span class="price-label">${sm.label}</span>
+      <span class="price-amount">€ ${sm.total.toFixed(2)}</span>
+    </div>`).join('');
+
+  card.innerHTML = `
+    <div class="price-header">
+      <span class="price-title">Prijsadvies</span>
+      <span class="price-meta">${advice.matched} van ${advice.total} items herkend</span>
+    </div>
+    <div class="price-best-banner">
+      Meest voordelig: <strong>${best.label}</strong>
+      ${savings > 0.50 ? ` — bespaar tot <strong>€ ${savings.toFixed(2)}</strong>` : ''}
+    </div>
+    <div class="price-rows">${rows}</div>
+    <p class="price-disclaimer">Gebaseerd op gemiddelde Nederlandse supermarktprijzen 2025. Actuele prijzen kunnen afwijken.</p>`;
+
+  document.getElementById('listItems').appendChild(card);
 }
 
 // ══════════════════════════════════════════════════════
