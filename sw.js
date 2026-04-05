@@ -1,5 +1,5 @@
-const CACHE = 'mandje-v5';
-const BASE  = '/berlin-city-game';
+const CACHE = 'mandje-v1';
+const BASE  = '/grocy';
 const ASSETS = [
   BASE + '/',
   BASE + '/index.html',
