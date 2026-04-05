@@ -1131,15 +1131,14 @@ function parseIngredient(ing) {
 
 // ══════════════════════════════════════════════════════
 // FIREBASE CLOUD SYNC MODULE
+// Gebruikt anonieme auth + members-array voor beveiliging
 // ══════════════════════════════════════════════════════
 const cloud = (() => {
-  let db = null;
-  let householdId = null;
-  let unsubscribe = null;
-  let enabled = false;
+  let db = null, auth = null, user = null;
+  let householdId = null, unsubscribe = null, enabled = false;
 
   function genCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // geen 0/O/1/I (verwarring)
     let code = '';
     for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
     return code;
@@ -1148,7 +1147,7 @@ const cloud = (() => {
   function listenToHousehold(id) {
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }
     unsubscribe = db.collection('households').doc(id).onSnapshot(snap => {
-      if (!snap.exists) return;
+      if (!snap.exists || snap.metadata.hasPendingWrites) return;
       const data = snap.data();
       if (data.lists)     { lists     = data.lists;     store.set('mnd_lists', lists); }
       if (data.baseItems) { baseItems = data.baseItems; store.set('mnd_base', baseItems); }
@@ -1162,16 +1161,24 @@ const cloud = (() => {
     if (!FIREBASE_CONFIG.apiKey) return;
     try {
       if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-      db = firebase.firestore();
+      db   = firebase.firestore();
+      auth = firebase.auth();
+
+      // Anoniem inloggen (persistent, zelfde UID bij heropenen)
+      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      const cred = await auth.signInAnonymously();
+      user    = cred.user;
       enabled = true;
 
       householdId = localStorage.getItem('mnd_household');
       if (!householdId) {
         householdId = genCode();
         localStorage.setItem('mnd_household', householdId);
-        // Create initial doc
+        // Maak huishoud-document aan met eigen UID als eerste lid
         await db.collection('households').doc(householdId).set({
-          lists, baseItems, freq, createdAt: Date.now()
+          lists, baseItems, freq,
+          members: [user.uid],
+          createdAt: Date.now(),
         });
       }
       listenToHousehold(householdId);
@@ -1184,18 +1191,27 @@ const cloud = (() => {
   async function push() {
     if (!enabled || !db || !householdId) return;
     try {
-      await db.collection('households').doc(householdId).set(
-        { lists, baseItems, freq, updatedAt: Date.now() },
-        { merge: true }
-      );
+      // update() preserveert het members-veld (geen set() met merge om UID-verlies te voorkomen)
+      await db.collection('households').doc(householdId).update({
+        lists, baseItems, freq, updatedAt: Date.now(),
+      });
     } catch (e) { console.warn('cloud.push failed:', e); }
   }
 
   async function joinHousehold(code) {
     if (!enabled || !db) throw new Error('Firebase niet geconfigureerd');
+    if (!user) throw new Error('Niet ingelogd');
     const snap = await db.collection('households').doc(code).get();
-    if (!snap.exists) throw new Error('Huishouden niet gevonden: ' + code);
+    if (!snap.exists) throw new Error('Code niet gevonden: ' + code);
     const data = snap.data();
+
+    // Voeg eigen UID toe aan members zodat security rules schrijven toestaan
+    if (!data.members?.includes(user.uid)) {
+      await db.collection('households').doc(code).update({
+        members: firebase.firestore.FieldValue.arrayUnion(user.uid),
+      });
+    }
+
     if (data.lists)     { lists     = data.lists;     store.set('mnd_lists', lists); }
     if (data.baseItems) { baseItems = data.baseItems; store.set('mnd_base', baseItems); }
     if (data.freq)      { freq      = data.freq;      store.set('mnd_freq', freq); }
@@ -1206,8 +1222,8 @@ const cloud = (() => {
     if (activeId) renderList();
   }
 
-  function getCode() { return householdId; }
-  function isEnabled() { return enabled; }
+  function getCode()    { return householdId; }
+  function isEnabled()  { return enabled; }
 
   return { init, push, joinHousehold, getCode, isEnabled };
 })();
