@@ -102,40 +102,60 @@
       </div>
     </header>
 
-    <div class="scroll-area" id="listScroll">
-
-      <!-- Add area -->
-      <div class="add-area">
-        <div class="add-row">
-          <div class="input-wrap">
-            <input id="itemInput" type="text" placeholder="Item toevoegen…" autocomplete="off" autocorrect="off" spellcheck="false">
-            <div id="acDropdown" class="autocomplete-dropdown" style="display:none"></div>
-          </div>
-          <button class="add-btn" id="btnAddItem">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        </div>
-        <button class="recipe-row-btn" id="btnOpenRecipe">🍳 Recept toevoegen</button>
-      </div>
-
-      <!-- Progress -->
-      <div class="progress-section">
-        <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
-        <span id="progressLabel" class="progress-label">0 / 0</span>
-      </div>
-
-      <!-- Items by category -->
-      <div id="listItems"></div>
-
+    <!-- Tabs -->
+    <div class="list-tabs">
+      <button class="list-tab is-active" id="tabBoodschappen">🛒 Boodschappen</button>
+      <button class="list-tab" id="tabRecepten">🍳 Recepten</button>
     </div>
 
-    <!-- Floating prijsbalk -->
-    <div id="priceBar" class="price-bar" style="display:none">
-      <button class="price-bar-btn" id="btnPriceBar">
-        <span class="price-bar-trophy">🏆</span>
-        <span class="price-bar-text">Meest voordelig: <strong id="priceBarName"></strong></span>
-        <span class="price-bar-chevron">›</span>
-      </button>
+    <!-- ─ Panel: Boodschappen ─────────────────────────── -->
+    <div id="panelBoodschappen" class="list-panel">
+      <div class="scroll-area" id="listScroll">
+        <div class="add-area">
+          <div class="add-row">
+            <div class="input-wrap">
+              <input id="itemInput" type="text" placeholder="Item toevoegen…" autocomplete="off" autocorrect="off" spellcheck="false">
+              <div id="acDropdown" class="autocomplete-dropdown" style="display:none"></div>
+            </div>
+            <button class="add-btn" id="btnAddItem">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="progress-section">
+          <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+          <span id="progressLabel" class="progress-label">0 / 0</span>
+        </div>
+        <div id="listItems"></div>
+      </div>
+      <div id="priceBar" class="price-bar" style="display:none">
+        <button class="price-bar-btn" id="btnPriceBar">
+          <span class="price-bar-trophy">🏆</span>
+          <span class="price-bar-text">Meest voordelig: <strong id="priceBarName"></strong></span>
+          <span class="price-bar-chevron">›</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ─ Panel: Recepten ────────────────────────────── -->
+    <div id="panelRecepten" class="list-panel" style="display:none">
+      <div class="scroll-area" id="receptenScroll">
+        <div class="recept-toolbar">
+          <div class="input-wrap" style="flex:1;min-width:0">
+            <input id="recipeInput" type="text" placeholder="Zoek recept…" autocomplete="off" autocorrect="off" spellcheck="false">
+          </div>
+          <button class="add-btn" id="btnRecipeSearch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button class="recipe-settings-btn" id="btnRecipeSettings" title="Instellingen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
+        <div id="savedRecipes"></div>
+        <div id="recipeContent">
+          <p class="recipe-hint">🧪 Demo-modus — zoek "pasta", "kip", "soep" of "stamppot".</p>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -184,25 +204,33 @@
     </div>
   </div>
 
-  <!-- ══════════════════════ RECEPT SHEET ══════════════════════ -->
-  <div id="recipeSheet" class="bottom-sheet">
-    <div class="sheet-backdrop" id="recipeBackdrop"></div>
-    <div class="sheet-panel sheet-panel--tall">
+  <!-- ══════════════════════ RECEPT INSTELLINGEN SHEET ══════════════════════ -->
+  <div id="recipeSettingsSheet" class="bottom-sheet">
+    <div class="sheet-backdrop" id="recipeSettingsBackdrop"></div>
+    <div class="sheet-panel">
       <div class="sheet-handle"></div>
       <div class="sheet-head">
-        <div class="sheet-title">Recept toevoegen</div>
-        <button class="sheet-done" id="btnRecipeClose">Sluiten</button>
+        <div class="sheet-title">Receptinstellingen</div>
+        <button class="sheet-done" id="btnRecipeSettingsClose">Klaar</button>
       </div>
-      <div class="sheet-add" id="recipeSearchRow">
-        <div class="input-wrap" style="flex:1">
-          <input id="recipeInput" type="text" placeholder="Zoek recept…" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div class="sheet-scroll">
+        <div class="settings-section">
+          <div class="settings-section-label">Aantal personen</div>
+          <div class="settings-stepper-row">
+            <button class="step-btn step-min" id="btnPersonsMinus">−</button>
+            <span class="step-val" id="personsVal">4</span>
+            <button class="step-btn step-plus" id="btnPersonsPlus">+</button>
+          </div>
         </div>
-        <button class="add-btn" id="btnRecipeSearch">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </button>
-      </div>
-      <div class="sheet-scroll" id="recipeContent">
-        <p class="recipe-hint">Zoek een gerecht om ingrediënten automatisch aan je lijst toe te voegen.</p>
+        <div class="settings-section">
+          <div class="settings-section-label">Dieetvoorkeur</div>
+          <div class="settings-section-hint">Niets geselecteerd = alle gerechten</div>
+          <div class="diet-pills">
+            <button class="diet-pill" data-diet="vis">🐟 Vis</button>
+            <button class="diet-pill" data-diet="vlees">🥩 Vlees</button>
+            <button class="diet-pill" data-diet="vega">🌿 Vega</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

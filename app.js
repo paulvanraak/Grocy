@@ -682,10 +682,25 @@ function renderBasis() {
 // ══════════════════════════════════════════════════════
 function openList(id) {
   activeId = id;
+  const list = activeList();
+  // Init new fields for older lists
+  if (list) {
+    if (!list.persons)      list.persons      = 4;
+    if (!list.dietFilters)  list.dietFilters  = [];
+    if (!list.savedRecipes) list.savedRecipes = [];
+  }
   resetAdd();
+  switchTab('boodschappen');
   renderList();
   showScreen('screen-list');
   document.getElementById('listScroll').scrollTop = 0;
+}
+
+function switchTab(tab) {
+  document.getElementById('panelBoodschappen').style.display = tab === 'boodschappen' ? '' : 'none';
+  document.getElementById('panelRecepten').style.display     = tab === 'recepten'     ? '' : 'none';
+  document.getElementById('tabBoodschappen').classList.toggle('is-active', tab === 'boodschappen');
+  document.getElementById('tabRecepten').classList.toggle('is-active',     tab === 'recepten');
 }
 
 function createList(name, withBase) {
@@ -696,7 +711,10 @@ function createList(name, withBase) {
         checked: false, fromBase: true, baseId: b.id
       }))
     : [];
-  const list = { id: uid(), name, createdAt: Date.now(), items };
+  const list = {
+    id: uid(), name, createdAt: Date.now(), items,
+    persons: 4, dietFilters: [], savedRecipes: [],
+  };
   lists.push(list);
   save();
   renderHome();
@@ -972,21 +990,50 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) e.currentTarget.style.display = 'none';
   });
 
-  // ── Recept sheet ──────────────────────────────────────
-  document.getElementById('btnOpenRecipe').addEventListener('click', () => {
-    if (!activeId) {
-      document.getElementById('recipeContent').innerHTML =
-        '<p class="recipe-hint">Open eerst een lijst om recepten toe te voegen.</p>';
-    }
-    openRecipeSheet();
+  // ── Tabs ──────────────────────────────────────────────
+  document.getElementById('tabBoodschappen').addEventListener('click', () => switchTab('boodschappen'));
+  document.getElementById('tabRecepten').addEventListener('click', () => {
+    switchTab('recepten');
+    renderSavedRecipes();
   });
-  document.getElementById('btnRecipeClose').addEventListener('click', closeRecipeSheet);
-  document.getElementById('recipeBackdrop').addEventListener('click', closeRecipeSheet);
+
+  // ── Recepten: zoeken ─────────────────────────────────
   document.getElementById('btnRecipeSearch').addEventListener('click', () => {
     searchRecipes(document.getElementById('recipeInput').value.trim());
   });
   document.getElementById('recipeInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') searchRecipes(document.getElementById('recipeInput').value.trim());
+  });
+
+  // ── Recepten: instellingen ────────────────────────────
+  document.getElementById('btnRecipeSettings').addEventListener('click', openRecipeSettings);
+  document.getElementById('btnRecipeSettingsClose').addEventListener('click', closeRecipeSettings);
+  document.getElementById('recipeSettingsBackdrop').addEventListener('click', closeRecipeSettings);
+
+  document.getElementById('btnPersonsMinus').addEventListener('click', () => {
+    const list = activeList(); if (!list) return;
+    list.persons = Math.max(1, (list.persons || 4) - 1);
+    document.getElementById('personsVal').textContent = list.persons;
+    save();
+  });
+  document.getElementById('btnPersonsPlus').addEventListener('click', () => {
+    const list = activeList(); if (!list) return;
+    list.persons = Math.min(20, (list.persons || 4) + 1);
+    document.getElementById('personsVal').textContent = list.persons;
+    save();
+  });
+
+  document.querySelectorAll('.diet-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const list = activeList(); if (!list) return;
+      const diet = btn.dataset.diet;
+      if (!list.dietFilters) list.dietFilters = [];
+      const idx = list.dietFilters.indexOf(diet);
+      if (idx >= 0) list.dietFilters.splice(idx, 1);
+      else           list.dietFilters.push(diet);
+      btn.classList.toggle('is-active', list.dietFilters.includes(diet));
+      save();
+    });
   });
 
   // ── Sync modal ────────────────────────────────────────
@@ -1237,6 +1284,7 @@ const cloud = (() => {
 const DEMO_RECIPES = [
   {
     title: 'Pasta Carbonara',
+    dietTags: ['vlees'],
     image: '',
     readyInMinutes: 25,
     extendedIngredients: [
@@ -1249,6 +1297,7 @@ const DEMO_RECIPES = [
   },
   {
     title: 'Kipfilet met groenten',
+    dietTags: ['vlees'],
     image: '',
     readyInMinutes: 35,
     extendedIngredients: [
@@ -1262,6 +1311,7 @@ const DEMO_RECIPES = [
   },
   {
     title: 'Tomatensoep',
+    dietTags: ['vega'],
     image: '',
     readyInMinutes: 30,
     extendedIngredients: [
@@ -1275,6 +1325,7 @@ const DEMO_RECIPES = [
   },
   {
     title: 'Gehaktballen in tomatensaus',
+    dietTags: ['vlees'],
     image: '',
     readyInMinutes: 40,
     extendedIngredients: [
@@ -1288,6 +1339,7 @@ const DEMO_RECIPES = [
   },
   {
     title: 'Griekse salade',
+    dietTags: ['vega'],
     image: '',
     readyInMinutes: 15,
     extendedIngredients: [
@@ -1300,6 +1352,7 @@ const DEMO_RECIPES = [
   },
   {
     title: 'Roerbakschotel met noedels',
+    dietTags: ['vlees'],
     image: '',
     readyInMinutes: 20,
     extendedIngredients: [
@@ -1313,6 +1366,7 @@ const DEMO_RECIPES = [
   },
   {
     title: 'Stamppot boerenkool',
+    dietTags: ['vlees'],
     image: '',
     readyInMinutes: 45,
     extendedIngredients: [
@@ -1325,6 +1379,7 @@ const DEMO_RECIPES = [
   },
   {
     title: 'Lasagne',
+    dietTags: ['vlees'],
     image: '',
     readyInMinutes: 60,
     extendedIngredients: [
@@ -1338,29 +1393,120 @@ const DEMO_RECIPES = [
       { name: 'Bloem',         amount: 40,  unit: 'g',    measures: { metric: { amount: 40,  unitShort: 'g' } } },
     ],
   },
+  {
+    title: 'Zalm met citroen en rijst',
+    dietTags: ['vis'],
+    image: '',
+    readyInMinutes: 30,
+    extendedIngredients: [
+      { name: 'Zalm',          amount: 600, unit: 'g',    measures: { metric: { amount: 600, unitShort: 'g' } } },
+      { name: 'Rijst',         amount: 300, unit: 'g',    measures: { metric: { amount: 300, unitShort: 'g' } } },
+      { name: 'Citroen',       amount: 1,   unit: 'stuks', measures: { metric: { amount: 1,   unitShort: 'stuks' } } },
+      { name: 'Spinazie',      amount: 200, unit: 'g',    measures: { metric: { amount: 200, unitShort: 'g' } } },
+      { name: 'Knoflook',      amount: 2,   unit: 'stuks', measures: { metric: { amount: 2,   unitShort: 'stuks' } } },
+      { name: 'Olijfolie',     amount: 2,   unit: 'el',   measures: { metric: { amount: 2,   unitShort: 'el' } } },
+    ],
+  },
+  {
+    title: 'Pasta met tonijn',
+    dietTags: ['vis'],
+    image: '',
+    readyInMinutes: 20,
+    extendedIngredients: [
+      { name: 'Pasta',         amount: 400, unit: 'g',    measures: { metric: { amount: 400, unitShort: 'g' } } },
+      { name: 'Tonijn',        amount: 2,   unit: 'blik', measures: { metric: { amount: 280, unitShort: 'g' } } },
+      { name: 'Tomaten',       amount: 400, unit: 'g',    measures: { metric: { amount: 400, unitShort: 'g' } } },
+      { name: 'Ui',            amount: 1,   unit: 'stuks', measures: { metric: { amount: 1,   unitShort: 'stuks' } } },
+      { name: 'Olijfolie',     amount: 2,   unit: 'el',   measures: { metric: { amount: 2,   unitShort: 'el' } } },
+      { name: 'Knoflook',      amount: 2,   unit: 'stuks', measures: { metric: { amount: 2,   unitShort: 'stuks' } } },
+    ],
+  },
+  {
+    title: 'Groente curry',
+    dietTags: ['vega'],
+    image: '',
+    readyInMinutes: 30,
+    extendedIngredients: [
+      { name: 'Rijst',         amount: 300, unit: 'g',    measures: { metric: { amount: 300, unitShort: 'g' } } },
+      { name: 'Kokosmelk',     amount: 400, unit: 'ml',   measures: { metric: { amount: 400, unitShort: 'ml' } } },
+      { name: 'Kikkererwten',  amount: 400, unit: 'g',    measures: { metric: { amount: 400, unitShort: 'g' } } },
+      { name: 'Spinazie',      amount: 200, unit: 'g',    measures: { metric: { amount: 200, unitShort: 'g' } } },
+      { name: 'Ui',            amount: 1,   unit: 'stuks', measures: { metric: { amount: 1,   unitShort: 'stuks' } } },
+      { name: 'Tomaten blik',  amount: 400, unit: 'g',    measures: { metric: { amount: 400, unitShort: 'g' } } },
+      { name: 'Knoflook',      amount: 3,   unit: 'stuks', measures: { metric: { amount: 3,   unitShort: 'stuks' } } },
+    ],
+  },
 ];
 
 function searchDemoRecipes(query) {
   const q = query.toLowerCase();
-  return DEMO_RECIPES.filter(r =>
-    r.title.toLowerCase().includes(q) ||
-    r.extendedIngredients.some(i => i.name.toLowerCase().includes(q))
-  );
+  const list = activeList();
+  const filters = list?.dietFilters || [];
+  return DEMO_RECIPES.filter(r => {
+    const textMatch = !q ||
+      r.title.toLowerCase().includes(q) ||
+      r.extendedIngredients.some(i => i.name.toLowerCase().includes(q));
+    if (!textMatch) return false;
+    if (!filters.length) return true;
+    return filters.some(f => (r.dietTags || []).includes(f));
+  });
 }
 
-function openRecipeSheet() {
-  document.getElementById('recipeSheet').classList.add('open');
-  document.getElementById('recipeInput').value = '';
-  const isDemo = !EDAMAM_APP_ID || !EDAMAM_APP_KEY;
-  document.getElementById('recipeContent').innerHTML = `<p class="recipe-hint">${
-    isDemo
-      ? '🧪 Demo-modus — zoek bijv. "pasta", "kip" of "soep". Vervang door Edamam-sleutels voor echte recepten.'
-      : 'Zoek een gerecht om ingrediënten automatisch aan je lijst toe te voegen.'
-  }</p>`;
+// ── Opgeslagen recepten voor deze week ─────────────────────────────────────
+function renderSavedRecipes() {
+  const list = activeList();
+  const el   = document.getElementById('savedRecipes');
+  if (!list || !el) return;
+  const saved = list.savedRecipes || [];
+  if (!saved.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="saved-recipes-header">Recepten deze week</div>
+    ${saved.map((r, i) => `
+      <div class="saved-recipe-card">
+        <div class="saved-recipe-info">
+          <div class="saved-recipe-title">${esc(r.title)}</div>
+          <div class="saved-recipe-meta">${(r.extendedIngredients||[]).length} ingrediënten${r.readyInMinutes ? ` · ${r.readyInMinutes} min` : ''}</div>
+        </div>
+        <div class="saved-recipe-actions">
+          <button class="saved-recipe-add" data-idx="${i}" title="Ingrediënten toevoegen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="saved-recipe-del" data-idx="${i}" title="Verwijderen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>`).join('')}`;
+  el.querySelectorAll('.saved-recipe-add').forEach(btn => {
+    btn.addEventListener('click', () => {
+      addRecipeItems(saved[parseInt(btn.dataset.idx)]);
+      switchTab('boodschappen');
+    });
+  });
+  el.querySelectorAll('.saved-recipe-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      list.savedRecipes.splice(parseInt(btn.dataset.idx), 1);
+      save(); renderSavedRecipes();
+    });
+  });
 }
 
-function closeRecipeSheet() {
-  document.getElementById('recipeSheet').classList.remove('open');
+function openRecipeSettings() {
+  const list = activeList();
+  if (!list) return;
+  // Sync stepper value
+  document.getElementById('personsVal').textContent = list.persons || 4;
+  // Sync diet pills
+  document.querySelectorAll('.diet-pill').forEach(btn => {
+    btn.classList.toggle('is-active', (list.dietFilters || []).includes(btn.dataset.diet));
+  });
+  document.getElementById('recipeSettingsSheet').classList.add('open');
+}
+
+function closeRecipeSettings() {
+  document.getElementById('recipeSettingsSheet').classList.remove('open');
+  // Re-run search if query exists
+  const q = document.getElementById('recipeInput').value.trim();
+  if (q) searchRecipes(q);
 }
 
 function renderRecipeLoading() {
@@ -1399,8 +1545,16 @@ async function searchRecipes(query) {
 
   // Edamam live
   try {
+    const list    = activeList();
+    const filters = list?.dietFilters || [];
+    const healthMap = { vega: 'vegetarian', vis: 'pescatarian' };
+    // Apply most restrictive matching filter (skip 'vlees' — no Edamam label for it)
+    const healthParam = filters
+      .filter(f => healthMap[f])
+      .map(f => `&health=${healthMap[f]}`)
+      .join('');
     const res = await fetch(
-      `https://api.edamam.com/api/recipes/v2?type=public&q=${encodeURIComponent(query)}&app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}&field=label&field=image&field=totalTime&field=ingredients`
+      `https://api.edamam.com/api/recipes/v2?type=public&q=${encodeURIComponent(query)}&app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}&field=label&field=image&field=totalTime&field=ingredients${healthParam}`
     );
     if (!res.ok) throw new Error('Edamam ' + res.status);
     const data = await res.json();
@@ -1460,31 +1614,33 @@ function renderRecipeDetail(recipe) {
 
   document.getElementById('btnAddAllIngredients').addEventListener('click', () => {
     addRecipeItems(recipe);
-    closeRecipeSheet();
+    switchTab('boodschappen');
   });
 }
 
 function addRecipeItems(recipe) {
   const list = activeList();
   if (!list) { alert('Open eerst een lijst.'); return; }
+  const scale = (list.persons || 4) / 4; // recepten zijn voor 4 personen (standaard)
   (recipe.extendedIngredients || []).forEach(ing => {
     const p = parseIngredient(ing);
     if (!p.name.trim()) return;
-    // Avoid exact duplicates
     if (list.items.find(i => i.name.toLowerCase() === p.name.toLowerCase() && !i.checked)) return;
     list.items.push({
-      id: uid(),
-      name: p.name,
-      catId: p.catId,
-      qty: Math.max(1, Math.round(p.qty)) || 1,
+      id: uid(), name: p.name, catId: p.catId,
+      qty:  Math.max(1, Math.round((p.qty || 1) * scale)),
       unit: p.unit || 'stuks',
-      checked: false,
-      fromBase: false,
-      fromRecipe: recipe.title,
+      checked: false, fromBase: false, fromRecipe: recipe.title,
     });
   });
+  // Sla recept op in de week (als het er nog niet in staat)
+  if (!list.savedRecipes) list.savedRecipes = [];
+  if (!list.savedRecipes.find(r => r.title === recipe.title)) {
+    list.savedRecipes.push(recipe);
+  }
   save();
   renderList();
+  renderSavedRecipes();
 }
 
 // Service Worker
